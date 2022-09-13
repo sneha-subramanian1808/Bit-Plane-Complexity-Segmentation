@@ -1,15 +1,16 @@
+#Importing the needed libraries
 import argparse
 import numpy
 import math
 from Queue import *
 from PIL import Image
 
-#take in command args
+#Initializing command arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--infile', type=str, help='path to image embedded with secret (.bmp)')
 opts = parser.parse_args()
 
-#complexity funtions count the number of changes of bits vertically + horizontaly
+#Complexity funtions to count the number of changes of bits vertically + horizontaly
 def complexity(matrix):
     #max is equivialant to the complexity of a checkerboard
     max = ((matrix.shape[0]-1)*matrix.shape[1]) + ((matrix.shape[1] - 1) * matrix.shape[0])
@@ -30,18 +31,18 @@ def complexity(matrix):
     return curr/max
 
 
-#Load Images and show image
+#Loading Images and showing image
 print('Opening embedded image and showing...')
 image = Image.open(opts.infile).convert('L')
 image.show()
 
-#Convert Image to Array
+#Converting the Image to Array
 array = numpy.array(image)
 
 # Garbage collect file
 image.close()
 
-#Slice BitPlane of vessel
+#Slicing BitPlane of vessel
 print('Slicing image...')
 bitPlaneArr  = numpy.zeros( (array.shape[0], array.shape[1], 8), dtype = 'uint8' )
 bitPlaneArr[:,:,0] = numpy.copy(array)
@@ -54,7 +55,7 @@ del array
 print('Sliced vessel.')
 
 
-# chop up embedded image into noisy 8x8 with 1x1 padding bitplanes and place in a queue for decoding
+#Chopping up embedded image into noisy 8x8 with 1x1 padding bitplanes and place in a queue for decoding
 print('Placing each noisy 9x9 bit of vessel into a queue...')
 q = Queue(maxsize=0)
 for k in range(7, -1, -1):
@@ -64,10 +65,10 @@ for k in range(7, -1, -1):
                 q.put(bitPlaneArr[slice(i*9, i*9+9),slice(j*9, j*9+9), k])
 print('Queue filled.')
 
-#first hidden square contains metadata and is not part of the image
+#First hidden square contains metadata and is not part of the image
 print('Checking metadata in first 9x9 and creating empty bitplane for embedded secret...')
 firstSquare = q.get()
-#check if first square was checkerboarded and if so un-checkerboard
+#Check if first square was checkerboarded and if so un-checkerboard
 if(firstSquare[8,8] == 1):
     for i in range(9):
         for j in range(9):
@@ -78,7 +79,7 @@ if(firstSquare[8,8] == 1):
                     firstSquare[i,j] = 0
     firstSquare[8,8] == 0
 
-#bit count first 27 bit uint as # of 8x8 squares in image (how many elements needed from queue)
+#Bit count first 27 bit uint as # of 8x8 squares in image (how many elements needed from queue)
 totalSquares = 0
 bitValue = 26
 for i in range(3):
@@ -87,7 +88,7 @@ for i in range(3):
                 totalSquares = totalSquares + (2**bitValue)
             bitValue = bitValue-1
 
-#bit count 18 bit uint as height dimension
+#Bit count 18 bit uint as height dimension
 sizei = 0
 bitValue = 17
 for i in range(2):
@@ -96,7 +97,7 @@ for i in range(2):
                 sizei = sizei + (2**bitValue)
             bitValue = bitValue-1
 
-#bit count 18 bit uint as width dimension
+#Bit count 18 bit uint as width dimension
 sizej = 0
 bitValue = 17
 for i in range(2):
@@ -105,24 +106,24 @@ for i in range(2):
                 sizej = sizej + (2**bitValue)
             bitValue = bitValue-1
 
-#create a bitplane to hold entire secret image using above dimensions
+#Create a bitplane to hold entire secret image using above dimensions
 secretArr = numpy.zeros( (sizei, sizej, 8), dtype = 'uint8' )
 print('Empty bitplane ready for data.')
 
     
-#copy data to secret array
+#Copy data to secret array
 print('Decoding queue and placing in Secret bitplane...')
 done = 0
-#iterate through empty secretArr by 8x8s starting from the least signifigant layer
+#Iterate through empty secretArr by 8x8s starting from the least signifigant layer
 for k in range(7, -1, -1):
     for i in range((secretArr.shape[0])/8):
         for j in range((secretArr.shape[1])/8):
 
-            # if there are still relevant data squares in the queue
+            #If there are still relevant data squares in the queue
             if(done < totalSquares):
-                # get 9x9 data square
+                #Get 9x9 data square
                 dataSquare = numpy.copy(q.get())
-                # use last bit to determine if images was checkerboarded and un-checkerboard if so
+                #Use last bit to determine if images was checkerboarded and un-checkerboard if so
                 if(dataSquare[8,8] == 1):
                     for dSi in range(9):
                         for dSj in range(9):
@@ -133,12 +134,12 @@ for k in range(7, -1, -1):
                                     dataSquare[dSi,dSj] = 0
                     dataSquare[8,8] == 0
 
-                #copy 8x8 corner of dataSqaure into secretArr    
+                #Copy 8x8 corner of dataSqaure into secretArr    
                 secretArr[slice(i*8,i*8+8), slice(j*8,j*8+8), k] = dataSquare[slice(8), slice(8)]
                 done = done + 1
 print('Secret bitplane complete.')
 
-#create an uint8 image from bitplane with embedded secret 
+#Create an uint8 image from bitplane with embedded secret 
 print('Creating image from decoded bitplane...')
 intValue = numpy.uint8(0)
 saveArr = numpy.copy(secretArr[:,:,0])
@@ -151,7 +152,7 @@ for i in range(saveArr.shape[0]):
 del secretArr
 print('Image of decoded data created.')
 
-#print bitPlaneArr with inbedded info and then save to file
+#Print bitPlaneArr with inbedded info and then save to file
 print('Showing decoded image and saving as "decoded.bmp"...')
 newImage = Image.fromarray(saveArr,mode="L")
 newImage.show()
