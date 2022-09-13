@@ -1,3 +1,4 @@
+#importing needed libraries
 import argparse
 import numpy
 import math
@@ -5,15 +6,15 @@ import sys
 from Queue import *
 from PIL import Image
 
-#take in command args
+#initializing the command aruments
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--infile', type=str, help='path to vessel image (.bmp)')
 parser.add_argument('-s', '--secretfile', type=str, help='path to image to be hidden (.bmp)')
 opts = parser.parse_args()
 
-#complexity funtion counts the number of changes of bits vertically + horizontaly
+#complexity funtion that will count the number of changes of bits vertically + horizontaly
 def complexity(matrix):
-    #max is equivialant to the complexity of a checkerboard
+    #complexity of max will be equivalent to that of a checkerboard
     maxim = ((matrix.shape[0]-1)*matrix.shape[1]) + ((matrix.shape[1] - 1) * matrix.shape[0])
     curr = 0.0
     first = matrix[0,0]
@@ -47,7 +48,7 @@ secretArr = numpy.array(secret)
 image.close()
 secret.close()
 
-#Slice BitPlane of vessel
+#Slice BitPlane of the vessel image
 print('Slicing vessel...')
 bitPlaneArr  = numpy.zeros( (array.shape[0], array.shape[1], 8), dtype = 'uint8' )
 bitPlaneArr[:,:,0] = numpy.copy(array)
@@ -72,7 +73,7 @@ del secretArr
 print('Sliced secret image.')
 
 
-# chop up secret image into 8x8 bitplanes and place in a queue
+#Chop up the secret image into 8x8 bitplanes and place it in a queue
 print('Placing each 8x8 bit of secret into a queue...')
 q = Queue(maxsize=0)
 for k in range(7, -1, -1):
@@ -85,21 +86,21 @@ if(q.empty()):
 print('Queue filled.')
 
 
-#find places in bitPlaneArr to replace with 8x8s from queue
+#Find places in bitPlaneArr to replace with 8x8s from queue
 print('Placing each 8x8 element in queue into vessel bitplane...')
 firstRun = True
-#iterate through bitplane by 9x9s starting from the least signifigant layer
+#Iterate through bitplane by 9x9s starting from the least signifigant layer
 for k in range(7, -1, -1):
     for i in range(bitPlaneArr.shape[0]/9):
         for j in range(bitPlaneArr.shape[1]/9):
 
-            #find a 8x8 that is static enough to be replaced
+            #Find a 8x8 that is static enough to be replaced
             if(not q.empty()):
                 if(complexity(bitPlaneArr[slice(i*9, i*9+8),slice(j*9, j*9+8), k]) > .45):
 
-                    #instead of storing the first secert 8x8 image in the first aplicable 9x9
-                    #it is used to store metadata about the secret image, namely
-                    # - the number of 8x8s in the queue, the number of height, and the number of width pixels
+                    #Instead of storing the first secert 8x8 image in the first aplicable 9x9
+                    #It is used to store metadata about the secret image, namely
+                    #- the number of 8x8s in the queue, the number of height, and the number of width pixels
                     if(firstRun):
                         firstSquare = numpy.zeros( (9, 9), dtype = 'uint8')
                         
@@ -107,7 +108,7 @@ for k in range(7, -1, -1):
                         sizei = numpy.binary_repr(secretBitPlane.shape[0] - (secretBitPlane.shape[0]%8), width=18)
                         sizej = numpy.binary_repr(secretBitPlane.shape[1] - (secretBitPlane.shape[1]%8), width=18)
 
-                        #first 27 bits holds the total number of 8x8s in the queue
+                        #First 27 bits holds the total number of 8x8s in the queue
                         charIndex = 0
                         for fSi in range(3):
                             for fSj in range(9):
@@ -118,7 +119,7 @@ for k in range(7, -1, -1):
                                 charIndex = charIndex+1
                         charIndex = 0
                         
-                        #next 18 bits hold the height dimension
+                        #Next 18 bits hold the height dimension
                         for fSi in range(2):
                             for fSj in range(9):
                                 if(sizei[charIndex] == '0'):
@@ -128,7 +129,7 @@ for k in range(7, -1, -1):
                                 charIndex = charIndex+1
                         charIndex = 0
 
-                        #next 18 bits hold the width dimension
+                        #Next 18 bits hold the width dimension
                         for fSi in range(2):
                             for fSj in range(9):
                                 if(sizej[charIndex] == '0'):
@@ -137,7 +138,7 @@ for k in range(7, -1, -1):
                                     firstSquare[fSi+5,fSj] = 1
                                 charIndex = charIndex+1
 
-                        #everything else is zeros
+                        #Everything else is zeros
 
                         #Write first square into image
                         for fSi in range(9):
@@ -145,8 +146,8 @@ for k in range(7, -1, -1):
                                 bitPlaneArr[i*9+fSi,j*9+fSj,k] = firstSquare[fSi,fSj]
                         firstRun = False
 
-                    #write next queue element into bitplane array such the the 8x8 data square goes into
-                    #the top left corner of the 9x9 bitplane area
+                    #Write next queue element into bitplane array such the the 8x8 data square goes into
+                    #The top left corner of the 9x9 bitplane area
                     else:   
                         dataSquare = numpy.copy(q.get())
                     
@@ -156,8 +157,8 @@ for k in range(7, -1, -1):
                         #change the bitplanes last bit to 0 to signify that the area was not checkerboarded
                         bitPlaneArr[i*9+8, j*9+8, k] = 0
 
-                    #at this point check to make sure that the replaced area is still suffiently noisy
-                    #and if not, xor it with a checkerboard to ensure it is noisy enough to be picked out by
+                    #At this point check to make sure that the replaced area is still suffiently noisy
+                    #And if not, xor it with a checkerboard to ensure it is noisy enough to be picked out by
                     if(complexity(bitPlaneArr[slice(i*9, i*9+8),slice(j*9, j*9+8), k]) <= .45):
                         for cBi in range(9):
                             for cBj in range(9):
@@ -166,10 +167,10 @@ for k in range(7, -1, -1):
                                         bitPlaneArr[i*9+cBi,j*9+cBj,k] = 1
                                     elif(bitPlaneArr[i*9+cBi,j*9+cBj,k] == 1):
                                         bitPlaneArr[i*9+cBi,j*9+cBj,k] = 0
-                        #since we checkerboarded the area the last bit is changed to 1 to show that
+                        #Since we checkerboarded the area the last bit is changed to 1 to show that
                         bitPlaneArr[i*9+8, j*9+8, k] = 1
 
-# confirm that all of vessel was able to be place
+#Confirm that all of vessel was able to be place
 if(not q.empty()):
     print('Embedding failed: Vessel does not contain enough noisy sectors to fit all of secret image')
     sys.exit(1)
@@ -177,7 +178,7 @@ print('Noisy vessel bitplane replaced with secret image.')
 del secretBitPlane
 del q
 
-#create an uint8 image from bitplane with embedded secret 
+#Create an uint8 image from bitplane with embedded secret 
 print('Creating image from embedded bitmap...')
 intValue = numpy.uint8(0)
 saveArr = numpy.copy(bitPlaneArr[:,:,0])
@@ -190,7 +191,7 @@ for i in range(saveArr.shape[0]):
 del bitPlaneArr
 print('New image created.')
 
-#print bitPlaneArr with inbedded info and then save to file
+#Print bitPlaneArr with inbedded info and then save to file
 print('Showing image and saving as "embedded.bmp"...')
 newImage = Image.fromarray(saveArr,mode="L")
 newImage.show()
