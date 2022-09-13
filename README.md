@@ -1,5 +1,5 @@
 # BPCS-Project
-##Embedding Function:
+## Embedding Function:
 
 The Embed function uses Pillow to open the -i (vessel) and -s (secret) files and represents them
 with Numpy uint8 matrices of height x width.
@@ -12,7 +12,7 @@ After writing, the programme examines the newly written 8x8 complexity and, if i
 
 Otherwise, saveArr turns the vessel's bitplane, which now contains embedded data, back to an uint8 matrix. Pillow is then used to turn the saveArr into an Image, which is then saved as embedded.bmp.
 
-##Decoding Function:
+## Decoding Function:
 
 This programme uses Pillow to open the -i file (vessel) and represents it with a numpy uint8 matrix of height x width. The programme then slices each of the uint8 matrices into bitplane matrices with height x width x 8 dimensions. The entire vessel is iterated tg=hrough the 9x9's, which check the complexity of 8x8 top-left corners from left to right, top to bottom, least significant to most significant, and queue any 9x9 with an 8x8 complexity more than 0.45. 
 
